@@ -21,11 +21,6 @@
 import { parseArgs } from "std/cli/mod.ts";
 
 interface CliArgs {
-  port: number;
-  apiId: number;
-  apiHash: string;
-  workerCount: number;
-  statsPort: number;
   addUser: boolean;
 }
 
@@ -34,48 +29,6 @@ interface CliArgs {
  */
 export function parseCliArgs(argsList: string[]): string | CliArgs {
   const args = parseArgs(argsList);
-  const apiId = args["api-id"];
-  if (apiId === undefined || apiId === true) {
-    return "API ID not provided.";
-  }
-  if (typeof apiId !== "number") {
-    return "API ID must be a number.";
-  }
-  if (!apiId) {
-    return "Invalid API ID.";
-  }
-  let apiHash = args["api-hash"];
-  if (apiHash === undefined || apiHash === true) {
-    return "API hash not provided.";
-  }
-  if (typeof apiHash !== "string") {
-    return "API hash must be a string.";
-  }
-  apiHash = apiHash.trim();
-  if (!apiHash) {
-    return "Invalid API hash.";
-  }
-  const workerCount = args["workers"] ?? 1;
-  if (
-    typeof workerCount !== "number" || !workerCount || workerCount < 0 ||
-    workerCount % 1 != 0 || workerCount > 1_000
-  ) {
-    return "Invalid worker count.";
-  }
-  const port = args["port"] ?? 8000;
-  if (typeof port !== "number") {
-    return "Port must be a number.";
-  }
-  if (!port || port < 0 || port > 0xFFFF || port % 1 != 0) {
-    return "Invalid port.";
-  }
-  const statsPort = args["stats-port"] ?? 3000;
-  if (typeof statsPort !== "number") {
-    return "Stats port must be a number.";
-  }
-  if (!statsPort || statsPort < 0 || statsPort > 0xFFFF || statsPort % 1 != 0) {
-    return "Invalid stats port.";
-  }
   const addUser = args["add-user"] ?? false;
   if (typeof addUser !== "boolean") {
     return "Invalid value for --add-user.";
@@ -92,11 +45,6 @@ export function parseCliArgs(argsList: string[]): string | CliArgs {
     return `Invalid argument: ${args._[0]}`;
   }
   return {
-    port,
-    apiId,
-    apiHash,
-    workerCount,
-    statsPort,
     addUser,
   };
 }

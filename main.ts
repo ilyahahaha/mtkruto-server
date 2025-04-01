@@ -27,13 +27,21 @@ import { AllowedMethod } from "./client/deps.ts";
 import { WorkerManager } from "./worker_manager.ts";
 import { isAllowedMethod } from "./allowed_methods.ts";
 import { parseFormDataParams, parseGetParams } from "./params.ts";
+import { parseEnvVars } from "./env_vars.ts";
 
-const args = parseCliArgs(Deno.args);
+const args = parseEnvVars();
 if (typeof args !== "object") {
   log.error(args);
   Deno.exit(1);
 }
-const { port, apiId, apiHash, workerCount, statsPort, addUser: addUser_ } = args;
+const { apiHash, apiId, port, statsPort, workerCount } = args
+
+const cliArgs = parseCliArgs(Deno.args);
+if (typeof cliArgs !== "object") {
+  log.error(cliArgs);
+  Deno.exit(1);
+}
+const { addUser: addUser_ } = cliArgs;
 if (addUser_) {
   await addUser(apiId, apiHash);
 }
