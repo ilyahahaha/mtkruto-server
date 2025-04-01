@@ -21,7 +21,7 @@
 import * as path from "std/path/mod.ts";
 import { promptSecret } from "std/cli/prompt_secret.ts";
 
-import { Client } from "mtkruto/mod.ts";
+import { Client, DC } from "mtkruto/mod.ts";
 import { StorageDenoKV } from "mtkruto/storage/1_storage_deno_kv.ts";
 
 import { ClientManager } from "./client_manager.ts";
@@ -30,7 +30,19 @@ export async function addUser(apiId: number, apiHash: string): Promise<never> {
   const id = "user" + crypto.randomUUID();
   ClientManager.createKvPath();
   const storage = new StorageDenoKV(path.join(ClientManager.KV_PATH, id));
-  const client = new Client({ storage, apiId, apiHash });
+
+  // yep thats crap but why not
+  const promptDc = prompt("DC [1, 2, 3, 4, 5, 1-test, 2-test, 3-test] (default 2):")?.trim();
+  let initialDc: DC = "2";
+
+  if (promptDc && (["1", "2", "3", "4", "5", "1-test", "2-test", "3-test"].includes(promptDc))) {
+    console.log("Using DC:", promptDc);
+    initialDc = promptDc as DC;
+  } else {
+    console.log("Invalid DC, using 2");
+  }
+
+  const client = new Client({ storage, apiId, apiHash, initialDc });
 
   await client.start({
     phone: () => prompt("Phone number:")!,
