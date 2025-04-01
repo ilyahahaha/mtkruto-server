@@ -14,7 +14,7 @@ The documentation for MTKruto Server resides [here](https://mtkru.to/server/).
 
 ```bash
 docker run \
-    -p 3080:3000 \
+    -p 3000:3000 \
     -p 8000:8000 \
     -v /path/to/data:/app \
     -e API_ID=your_api_id \
