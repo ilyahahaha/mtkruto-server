@@ -417,30 +417,40 @@ export class ClientManager {
     try {
       do {
         let updatesToDispatch: Update[];
+        log.debug(`[${id}] Checking for updates to dispatch...`);
+        
         if (updates.length) {
+          log.debug(`[${id}] Found ${updates.length} pending updates`);
           updatesToDispatch = updates.splice(
-            0,
-            Math.min(
-              ClientManager.#WEBHOOK_MAX_DISPATCHED_UPDATES,
-              updates.length,
-            ),
+        0,
+        Math.min(
+          ClientManager.#WEBHOOK_MAX_DISPATCHED_UPDATES,
+          updates.length,
+        ),
           );
+          log.debug(`[${id}] Dispatching ${updatesToDispatch.length} updates`);
         } else {
+          log.debug(`[${id}] No updates available, waiting for new updates...`);
           await new Promise<void>((resolve) => {
-            const onAbort = () => resolve();
-            signal.addEventListener("abort", onAbort, { once: true });
-            this.#updateResolvers.set(client, () => {
-              resolve();
-              signal.removeEventListener("abort", onAbort);
-            });
+        const onAbort = () => {
+          log.debug(`[${id}] Webhook loop aborted while waiting for updates`);
+          resolve();
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+        this.#updateResolvers.set(client, () => {
+          log.debug(`[${id}] New updates received, resolving wait`);
+          resolve();
+          signal.removeEventListener("abort", onAbort);
+        });
           });
           updatesToDispatch = updates.splice(
-            0,
-            Math.min(
-              ClientManager.#WEBHOOK_MAX_DISPATCHED_UPDATES,
-              updates.length,
-            ),
+        0,
+        Math.min(
+          ClientManager.#WEBHOOK_MAX_DISPATCHED_UPDATES,
+          updates.length,
+        ),
           );
+          log.debug(`[${id}] Prepared ${updatesToDispatch.length} updates for dispatch after wait`);
         }
 
         if (signal.aborted) {
@@ -448,15 +458,26 @@ export class ClientManager {
         }
 
         this.#addToUpdateCleanupQueue(id, updatesToDispatch);
+        log.info(`[${id}] Sending ${updatesToDispatch.length} update(s) to webhook at ${url}`);
+        
         try {
-          await fetch(url, {
+          const response = await fetch(url, {
             method: "POST",
             body: JSON.stringify(updatesToDispatch),
           });
+          
+          if (!response.ok) {
+            log.error(
+              `[${id}] Webhook request failed with status ${response.status}: ${response.statusText}`
+            );
+          } else {
+            log.info(
+              `[${id}] Successfully dispatched ${updatesToDispatch.length} update(s) to webhook`
+            );
+          }
         } catch (err) {
           log.error(
-            `[${id}]\nFailed to dispatch ${updatesToDispatch.length} update${updatesToDispatch.length == 1 ? "" : "s"} to webhook at ${url}.`,
-            Deno.inspect(err, { colors: false }),
+            `[${id}] Failed to dispatch ${updatesToDispatch.length} update${updatesToDispatch.length == 1 ? "" : "s"} to webhook at ${url}.\nError details:\n${Deno.inspect(err, { colors: false })}`,
           );
         }
       } while (!signal.aborted);
